@@ -1,0 +1,107 @@
+#!/bin/bash
+clear
+rm plot.txt;
+echo "Entrer le nom du fichier à tracer"
+read -e datafile;
+extension="${datafile##*.}"
+filename="${datafile%.*}"
+echo "L'extension du fichier est: $extension"
+echo
+echo "Le fichier s'appelle: $filename"
+echo
+if [ "$extension" = "csv" ]
+	then
+		if grep -q ';' $datafile
+		then
+			echo -e "set datafile separator \";\"" >> plot.txt; 
+		elif grep -q ',' $datafile
+		then
+			echo -e "set datafile separator \",\"" >> plot.txt;
+		else
+			echo "Erreur, le fichier ne contient pas un separateur connu"
+		fi
+	fi
+echo "Le numero de la colonne pour l'axe des abscisses"
+read x;
+echo "Le numero de la colonne pour l'axe des ordonnées"
+read y;
+
+echo "Titre?"
+read title;
+echo "Label pour l'axe des abscisses?"
+read labelx;
+echo "Label pour l'axe des ordonnées?"
+read labely;
+
+touch plot.txt;
+
+echo "Axe des x en log ?"
+echo
+select log_enable in Oui Non; do
+    case $log_enable in
+        Oui ) echo -e "set log x\nset format x '10^{%L}'\nset grid xtics mxtics ytics mytics" >> plot.txt; break;;
+        Non ) break;;
+    esac
+done
+echo
+
+echo "Activer la légende ?"
+echo
+select key_enable in Oui Non; do
+    case $key_enable in
+        Oui ) echo -e "Position de la légende (bottom left, top right, ...)?"; read key_pos;	echo -e "set key box\nset key height 1\nset key $key_pos\nset key box spacing 1.5" >> plot.txt; break;;
+        Non ) echo -e "unset key" >> plot.txt; break;;
+    esac
+done
+echo
+
+echo -e "set xlabel '$labelx'\nset ylabel '$labely'\nset grid" >> plot.txt;
+
+# Plot
+echo  -e "plot \"$datafile\" using $x:$y title '$title' with line lw 3\npause -1 \"Hit any key to continue\"" >> plot.txt;
+
+gnuplot plot.txt 
+
+sed -i '/pause -1 \"Hit any key to continue\"/d' plot.txt
+
+clear
+echo "Voulez vous sauvegarder l'image?"
+echo
+select save in Oui Non ; do
+    case $save in
+        Oui ) echo "LaTex [1]"
+			echo "PNG [2]"
+			echo "Quitter [3]"
+			echo		
+
+			select i in 1 2 3 ; do
+			if [ $i = 1 ] 
+			then
+			  echo  "set terminal epslatex \"enhanced\"">>plot.txt;
+			  mkdir LaTeX;
+			  echo  "set output \"$filename.tex\"">>plot.txt;
+			  echo  "replot">>plot.txt;
+			  echo  "set output">>plot.txt;
+			  cat plot.txt | gnuplot;
+			  mv $filename.tex LaTeX/$filename.tex;
+			  mv $filename.eps LaTeX/$filename.eps;
+			  break
+			elif [ $i = 2 ] 
+			then
+			  echo  "set terminal png">>plot.txt;
+			  mkdir image;
+			  echo  "set output \"image/$filename.png\"">>plot.txt;
+			  echo  "replot">>plot.txt;
+			  echo  "set output">>plot.txt;
+			  cat plot.txt | gnuplot;
+			  break
+			elif [ $i = 3 ] 
+			then
+			  break
+			else
+					echo "Entrez 1, 2 ou 3"
+			fi
+			done; break;;
+        Non ) break;;
+    esac
+done

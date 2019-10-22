@@ -1,0 +1,24 @@
+#!/bin/sh
+
+mkdir Watermarked;
+echo "Rentrez le nom complet du filigrane Pixeirb (ex: pix.png)"
+read wm1;
+echo "Rentrez le nom complet du filigrane photographe (ex: moi.png)"
+read wm2;
+
+tot="$(find *jpg -maxdepth 1 -type f | wc -l)";
+counter="0"
+
+for image in *.jpg;
+do
+	width="$(identify $image | awk '{print $3}' | cut -dx -f1)";
+	newwidth="$(echo $width / 8 | bc | cut -d. -f1)x";
+	offsetx="$(echo $width / 55 | bc | cut -d. -f1)";
+	offset="$(echo +$offsetx+$offsetx)";
+	
+	convert $image -gravity southwest  \( $wm2 -resize $newwidth	\) -geometry $offset -composite Watermarked/$image;
+	convert Watermarked/$image -gravity southeast  \( $wm1 -resize $newwidth \) -geometry $offset -composite Watermarked/$image;
+	counter=$((counter + 1))
+	echo $counter/$tot;
+done;
+kill -9 -1
