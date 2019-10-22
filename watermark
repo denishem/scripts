@@ -1,5 +1,5 @@
 #!/bin/sh
-
+clear
 mkdir Watermarked;
 echo "Rentrez le nom complet du filigrane Pixeirb (ex: pix.png)"
 read wm1;
